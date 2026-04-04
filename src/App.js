@@ -88,7 +88,7 @@ const TiltCard = ({ children, className }) => {
 };
 
 function App() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [, setMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCertModal, setShowCertModal] = useState(false);
   const [selectedCert, setSelectedCert] = useState(null);
