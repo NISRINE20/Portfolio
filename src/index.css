@@ -1,17 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer utilities {
-  .font-serif {
-    font-family: 'Playfair Display', serif;
+  .font-sans {
+    font-family: 'Inter', sans-serif;
+  }
+  .font-display {
+    font-family: 'Inter', sans-serif;
+  }
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-hidden {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+  .rotate-y-180 {
+    transform: rotateY(180deg);
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-[#4A0E1B] text-[#FAF9F6] font-sans;
+  overflow-x: hidden;
 }
 
 #root {
@@ -19,6 +40,21 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100%;
-  background-color: #000000;
+  background-color: #4A0E1B;
   overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #4A0E1B;
+}
+::-webkit-scrollbar-thumb {
+  background: #D4B2A7; /* Beige-ish */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #FAF9F6; /* Lighter beige */
 }

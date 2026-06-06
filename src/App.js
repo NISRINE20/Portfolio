@@ -1,117 +1,87 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform, useMotionValueEvent } from "framer-motion";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
-import { User, Briefcase, Award, Mail } from "lucide-react";
+import { ArrowUpRight, Menu, X, ChevronLeft, ChevronRight } from "lucide-react";
 
-const AuroraBackground = () => (
-  <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-    <motion.div
-      className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-full mix-blend-screen filter blur-[100px] opacity-30"
-      style={{ backgroundImage: 'radial-gradient(circle, #fda4af, #e11d48, transparent 70%)' }}
-      animate={{
-        x: [0, 50, 0, -50, 0],
-        y: [0, -50, 50, 0, 0],
-        scale: [1, 1.2, 1, 1.1, 1]
-      }}
-      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-    />
-    <motion.div
-      className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full mix-blend-screen filter blur-[120px] opacity-20"
-      style={{ backgroundImage: 'radial-gradient(circle, #fbcfe8, #be185d, transparent 70%)' }}
-      animate={{
-        x: [0, -60, 0, 60, 0],
-        y: [0, 60, -60, 0, 0],
-        scale: [1, 1.3, 1, 1.2, 1]
-      }}
-      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-    />
-    <motion.div
-      className="absolute top-[20%] right-[20%] w-[40vw] h-[40vw] rounded-full mix-blend-screen filter blur-[90px] opacity-20"
-      style={{ backgroundImage: 'radial-gradient(circle, #c084fc, #7e22ce, transparent 70%)' }}
-      animate={{
-        x: [0, 40, -40, 0],
-        y: [0, 40, 0, -40],
-        scale: [1, 1.1, 1.2, 1]
-      }}
-      transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-    />
-  </div>
+const GithubIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.2c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+    <path d="M9 18c-4.51 2-5-2-7-2" />
+  </svg>
 );
 
-const TiltCard = ({ children, className }) => {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const mouseXSpring = useSpring(x, { stiffness: 300, damping: 30 });
-  const mouseYSpring = useSpring(y, { stiffness: 300, damping: 30 });
-
-  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["7deg", "-7deg"]);
-  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-7deg", "7deg"]);
-
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const width = rect.width;
-    const height = rect.height;
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
-    x.set(xPct);
-    y.set(yPct);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
-  return (
-    <motion.div
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
-        rotateY,
-        rotateX,
-        transformStyle: "preserve-3d",
-      }}
-      className={`relative w-full ${className}`}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true }}
-    >
-      <div style={{ transform: "translateZ(40px)", transformStyle: "preserve-3d" }} className="w-full h-full">
-        {children}
-      </div>
-    </motion.div>
-  );
-};
+const LinkedinIcon = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
 
 function App() {
-  const [, setMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCertModal, setShowCertModal] = useState(false);
   const [selectedCert, setSelectedCert] = useState(null);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [cursorVariant, setCursorVariant] = useState("default");
+  const [activeSection, setActiveSection] = useState("home");
+  const [hoveredNavItem, setHoveredNavItem] = useState(null);
+  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [selectedCertIndex, setSelectedCertIndex] = useState(null);
+  const [spinDirection, setSpinDirection] = useState(1);
 
-  // Interactive Background states
-  const mouseX = useMotionValue(-1000); // Start off-screen
-  const mouseY = useMotionValue(-1000);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 20 });
+  const { scrollYProgress, scrollY } = useScroll();
+  const yHeroImage = useTransform(scrollYProgress, [0, 1], [0, 200]);
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    const previous = scrollY.getPrevious();
+    if (latest > previous && latest > 150) {
+      setIsNavVisible(false);
+    } else {
+      setIsNavVisible(true);
+    }
+  });
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          setActiveSection(entry.target.id);
+        }
+      });
+    }, { threshold: 0.4 });
+
+    const sections = document.querySelectorAll("section[id]");
+    sections.forEach(section => observer.observe(section));
+
+    return () => {
+      sections.forEach(section => observer.unobserve(section));
     };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [mouseX, mouseY]);
+  }, []);
+
+  useEffect(() => {
+    const moveCursor = (e) => {
+      setCursorPos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener("mousemove", moveCursor);
+    return () => window.removeEventListener("mousemove", moveCursor);
+  }, []);
+
+  const cursorVariants = {
+    default: { x: cursorPos.x - 16, y: cursorPos.y - 16, opacity: 1, backgroundColor: "rgba(139, 92, 246, 0.4)", mixBlendMode: "multiply", border: "none" },
+    hover: { x: cursorPos.x - 32, y: cursorPos.y - 32, opacity: 1, height: 64, width: 64, backgroundColor: "rgba(139, 92, 246, 0.1)", mixBlendMode: "normal", border: "1px solid rgba(139, 92, 246, 0.6)" }
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 3800);
+    }, 1500); 
     return () => clearTimeout(timer);
   }, []);
 
@@ -121,43 +91,38 @@ function App() {
       title: "Accesion X",
       image: "/project1.jpg",
       link: "https://accession-x.vercel.app/",
-      description: "A comprehensive digital solution emphasizing user experience and modern design principles."
+      description: "A comprehensive digital solution emphasizing user experience and modern design principles. Built with a focus on seamless interactions and robust architecture."
     },
     {
       id: 2,
       title: "Chic Station",
       image: "/project2.jpg",
       link: "https://stationchic-reservation.vercel.app/",
-      description: "An elegant reservation platform designed for seamless booking and chic aesthetics."
+      description: "An elegant reservation platform designed for seamless booking and chic aesthetics. Features a refined user interface that elevates the booking experience."
     },
     {
       id: 3,
-      title: "Upcoming Project",
-      image: "/project3.jpg",
-      description: "Currently in development. Stay tuned for more creative solutions.",
-      link: "#"
+      title: "SKonnect",
+      image: "/skonnectlogo.png",
+      description: "SKonnect bridges the gap between Sangguniang Kabataan leaders and the youth using advanced machine learning, real-time analytics, and interactive engagement tools.",
+      link: "https://skonnect-project.vercel.app/"
+    },
+    {
+      id: 4,
+      title: "Rostify",
+      image: "/rostifylogo.png",
+      description: "Rostify streamlines workforce scheduling by automating roster creation, real-time updates, and reporting in a single platform. It improves efficiency and coordination while reducing manual workload and scheduling errors.",
+      link: "https://rostify-26.vercel.app/"
     }
   ];
 
   const certificates = [
-    {
-      id: 1,
-      title: "Certificate 1",
-      image: "/certificate1.jpg",
-      description: "Professional Achievement"
-    },
-    {
-      id: 2,
-      title: "Certificate 2",
-      image: "/certificate2.jpg",
-      description: "Skill Development"
-    },
-    {
-      id: 3,
-      title: "Certificate 3",
-      image: "/certificate3.jpg",
-      description: "Course Completion"
-    }
+    { id: 1, title: "Certificate 1", image: "/certificate1.jpg" },
+    { id: 2, title: "Certificate 2", image: "/certificate2.jpg" },
+    { id: 3, title: "Certificate 3", image: "/certificate3.jpg" },
+    { id: 4, title: "Certificate 4", image: "/certificate4.png" },
+    { id: 5, title: "Certificate 5", image: "/certificate5.jpg" },
+    { id: 6, title: "Certificate 6", image: "/certificate6.png" }
   ];
 
   const socialLinks = [
@@ -172,17 +137,29 @@ function App() {
     { id: "facebook", href: "https://www.facebook.com/bacamo.nisrine20", title: "Facebook" },
   ];
 
-  const skills = ["React", "UI/UX Design", "JavaScript", "Tailwind CSS", "Figma", "Problem Solving"];
+  const skills = ["React", "UI/UX Design", "JavaScript", "Tailwind CSS", "Figma", "Interaction Design"];
 
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
     element?.scrollIntoView({ behavior: "smooth" });
-    setMenuOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
-  const openCertModal = (cert) => {
-    setSelectedCert(cert);
+  const openCertModal = (certIndex) => {
+    setSelectedCertIndex(certIndex);
     setShowCertModal(true);
+  };
+
+  const nextCert = (e) => {
+    e.stopPropagation();
+    setSpinDirection(1);
+    setSelectedCertIndex((prev) => (prev + 1) % certificates.length);
+  };
+
+  const prevCert = (e) => {
+    e.stopPropagation();
+    setSpinDirection(-1);
+    setSelectedCertIndex((prev) => (prev - 1 + certificates.length) % certificates.length);
   };
 
   const downloadAllCertificates = async () => {
@@ -218,174 +195,246 @@ function App() {
 
   const fadeIn = {
     hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
   };
 
   const staggerContainer = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.2 }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center z-[9999]">
-        <svg width="400" height="120" viewBox="0 0 400 120" className="overflow-visible">
-          <defs>
-            <linearGradient id="rose-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#fda4af" />
-              <stop offset="100%" stopColor="#e11d48" />
-            </linearGradient>
-          </defs>
-          <motion.text
-            x="50%"
-            y="50%"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="transparent"
-            strokeWidth="1.5"
-            stroke="url(#rose-gradient)"
-            initial={{ pathLength: 0, fill: "rgba(251, 113, 133, 0)" }}
-            animate={{
-              pathLength: 1,
-              fill: "rgba(251, 113, 133, 1)"
-            }}
-            transition={{
-              pathLength: { duration: 2.2, ease: "easeInOut" },
-              fill: { duration: 1, ease: "easeIn", delay: 1.8 }
-            }}
-            style={{ fontFamily: "Inter, sans-serif", fontSize: "3.5rem", fontWeight: "700", letterSpacing: "8px" }}
-          >
-            NISRINE.
-          </motion.text>
-        </svg>
-
-        <motion.div
-          initial={{ opacity: 0, width: 0 }}
-          animate={{ opacity: 1, width: "180px" }}
-          transition={{ duration: 1.2, delay: 2.4, ease: "easeOut" }}
-          className="mt-2 h-[2px] bg-gradient-to-r from-transparent via-rose-400 to-transparent"
-        />
+      <div className="fixed inset-0 bg-[#FAF9F6] flex flex-col items-center justify-center z-[9999]">
+        <motion.h1 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-2xl font-light tracking-[0.5em] text-violet-600 uppercase"
+        >
+          Nisrine
+        </motion.h1>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-rose-500/30 selection:text-rose-200 relative overflow-hidden">
-      {/* Interactive Ambient Spotlight */}
+    <div className="min-h-screen bg-[#FAF9F6] text-slate-800 font-sans selection:bg-violet-200 selection:text-violet-900 relative">
       <motion.div
-        className="fixed top-0 left-0 w-[500px] h-[500px] bg-rose-400/10 rounded-full blur-[100px] pointer-events-none z-0"
-        style={{
-          x: springX,
-          y: springY,
-          translateX: "-50%",
-          translateY: "-50%"
-        }}
-      />
-      {/* Aurora Mesh Gradient Background */}
-      <AuroraBackground />
-      {/* Minimal Logo Positioned at Top Left */}
-      <div className="absolute top-6 left-6 z-40">
-        <div className="text-2xl font-semibold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-rose-300 to-rose-400">
-          NISRINE.
-        </div>
+        variants={cursorVariants}
+        animate={cursorVariant}
+        className="fixed top-0 left-0 w-8 h-8 rounded-full pointer-events-none z-[10000] hidden md:flex items-center justify-center transition-colors"
+        transition={{ type: "spring", stiffness: 500, damping: 28, mass: 0.5 }}
+      >
+        {cursorVariant === "hover" && <span className="text-[10px] uppercase font-bold text-violet-800">View</span>}
+      </motion.div>
+      
+      {/* Simple Static Background Pattern */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.4] z-0" 
+           style={{ backgroundImage: `radial-gradient(#DDD6FE 1px, transparent 1px)`, backgroundSize: '32px 32px' }}>
       </div>
 
-      {/* Floating Navigation Dock */}
-      <motion.nav
-        className="fixed left-4 md:left-6 lg:left-10 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center gap-2 p-2 bg-slate-900/80 backdrop-blur-xl border border-rose-500/20 rounded-full shadow-2xl shadow-rose-900/20"
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut", delay: 0.5 }}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-violet-400 origin-left z-[9999]"
+        style={{ scaleX: scrollYProgress }}
+      />
+
+      {/* Minimal Logo Positioned at Top Left */}
+      <motion.div 
+        className="fixed top-8 left-8 z-40 cursor-pointer group" 
+        onClick={scrollToTop}
+        animate={{ y: isNavVisible ? 0 : -100, opacity: isNavVisible ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <button onClick={() => scrollToSection("about")} className="group relative p-3 rounded-full hover:bg-rose-500/10 transition-colors"
-          aria-label="About">
-          <User className="w-5 h-5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-          <span className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-1 bg-slate-800 text-rose-300 text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            About Me
-          </span>
-        </button>
-        <button onClick={() => scrollToSection("projects")} className="group relative p-3 rounded-full hover:bg-rose-500/10 transition-colors"
-          aria-label="Projects">
-          <Briefcase className="w-5 h-5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-          <span className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-1 bg-slate-800 text-rose-300 text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Projects
-          </span>
-        </button>
-        <button onClick={() => scrollToSection("certificate")} className="group relative p-3 rounded-full hover:bg-rose-500/10 transition-colors"
-          aria-label="Credentials">
-          <Award className="w-5 h-5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-          <span className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-1 bg-slate-800 text-rose-300 text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Credentials
-          </span>
-        </button>
-        <button onClick={() => scrollToSection("contact")} className="group relative p-3 rounded-full hover:bg-rose-500/10 transition-colors"
-          aria-label="Contact">
-          <Mail className="w-5 h-5 text-slate-400 group-hover:text-rose-400 transition-colors" />
-          <span className="absolute left-14 top-1/2 -translate-y-1/2 px-3 py-1 bg-slate-800 text-rose-300 text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-            Contact
-          </span>
-        </button>
+        <div className="text-xl font-medium tracking-[0.2em] uppercase text-slate-800 group-hover:text-violet-600 transition-colors">
+          Nisrine<span className="text-violet-500 font-bold">.</span>
+        </div>
+      </motion.div>
+
+      {/* Elegant Top Navigation Pill */}
+      <motion.nav
+        className="fixed top-6 right-6 md:right-8 z-50 flex flex-row items-center justify-center gap-2 sm:gap-4 px-4 py-2 bg-white/80 backdrop-blur-md border border-violet-100 rounded-full shadow-lg hidden sm:flex"
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: isNavVisible ? 0 : -100, opacity: isNavVisible ? 1 : 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        onMouseLeave={() => setHoveredNavItem(null)}
+      >
+        {['About', 'Work', 'Credentials', 'Contact'].map((item) => {
+          const sectionId = item === 'Work' ? 'projects' : item === 'Credentials' ? 'certificate' : item.toLowerCase();
+          const isActive = activeSection === sectionId;
+          const isHovered = hoveredNavItem === item;
+          return (
+            <button 
+              key={item}
+              onClick={() => scrollToSection(sectionId)} 
+              onMouseEnter={() => setHoveredNavItem(item)}
+              className={`relative text-xs tracking-[0.1em] uppercase font-medium transition-colors px-4 py-2 rounded-full ${isActive || isHovered ? 'text-violet-700' : 'text-slate-500'}`}
+            >
+              {isHovered && (
+                <motion.div
+                  layoutId="navHoverPill"
+                  className="absolute inset-0 bg-violet-100/60 rounded-full z-[-1]"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              {item}
+              {isActive && !isHovered && (
+                <motion.div
+                  layoutId="navActiveDot"
+                  className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-violet-500"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+            </button>
+          );
+        })}
       </motion.nav>
 
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-4 overflow-hidden min-h-screen flex items-center">
-        <div className="absolute top-1/4 -right-1/4 w-[800px] h-[800px] bg-rose-900/10 rounded-full blur-[120px]"></div>
-        <div className="absolute -bottom-1/4 -left-1/4 w-[800px] h-[800px] bg-purple-900/10 rounded-full blur-[120px]"></div>
+      {/* Mobile Menu Button */}
+      <motion.button
+        animate={{ y: isNavVisible ? 0 : -100, opacity: isNavVisible ? 1 : 0 }}
+        transition={{ duration: 0.3 }}
+        onClick={() => setIsMobileMenuOpen(true)}
+        className="fixed top-6 right-6 z-50 p-3 bg-white/80 backdrop-blur-md border border-violet-100 rounded-full sm:hidden text-slate-600 shadow-lg"
+      >
+        <Menu className="w-5 h-5" />
+      </motion.button>
 
-        <div className="relative max-w-6xl mx-auto w-full">
-          <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-12 lg:gap-20">
+      {/* Full Screen Mobile Menu Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[100] bg-white/95 backdrop-blur-md flex flex-col items-center justify-center sm:hidden"
+          >
+            <button
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="absolute top-6 right-6 p-3 bg-white border border-violet-100 rounded-full text-slate-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <motion.nav 
+              className="flex flex-col items-center gap-10"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
+              }}
+            >
+              {['About', 'Work', 'Credentials', 'Contact'].map((item) => (
+                <motion.button
+                  key={item}
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                  onClick={() => {
+                    scrollToSection(item === 'Work' ? 'projects' : item === 'Credentials' ? 'certificate' : item.toLowerCase());
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-2xl tracking-[0.1em] uppercase font-light text-slate-600 hover:text-violet-600 transition-colors"
+                >
+                  {item}
+                </motion.button>
+              ))}
+            </motion.nav>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="absolute bottom-12 flex justify-center gap-8"
+            >
+              {socialLinks.map((social, idx) => (
+                <a
+                  key={idx}
+                  href={social.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs uppercase tracking-[0.1em] font-medium text-slate-400 hover:text-violet-600 transition-colors"
+                >
+                  {social.name}
+                </a>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* Hero Section */}
+      <section id="home" className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 overflow-hidden min-h-screen flex items-center z-10">
+        <div className="relative max-w-7xl mx-auto w-full">
+          <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-16 lg:gap-24">
             <motion.div
-              className="flex-1 text-center md:text-left z-10"
+              className="flex-1 text-center md:text-left"
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
               variants={staggerContainer}
             >
-              <motion.div variants={fadeIn} className="inline-block mb-4 px-4 py-1.5 rounded-full border border-rose-500/20 bg-rose-500/5">
-                <p className="text-rose-300 text-xs sm:text-sm font-medium tracking-widest uppercase">Welcome to my space</p>
+              <motion.div variants={fadeIn} className="inline-block mb-6 px-4 py-1.5 border border-violet-200 bg-white/50 rounded-full">
+                <p className="text-violet-600 text-[10px] sm:text-xs font-semibold tracking-[0.1em] uppercase">Digital Portfolio</p>
               </motion.div>
-              <motion.h1 variants={fadeIn} className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-6 tracking-tight text-white leading-tight">
-                Hi, I'm <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-300 to-rose-400">Nisrine</span>
+              <motion.h1 variants={fadeIn} className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-4 tracking-tight text-slate-800 leading-[1.1]">
+                Nisrine Bacasmo
               </motion.h1>
-              <motion.p variants={fadeIn} className="text-lg sm:text-xl text-slate-400 mb-8 font-light max-w-lg mx-auto md:mx-0 leading-relaxed">
-                An IT Student & UI/UX Designer dedicated to crafting elegant, functional, and user-centered digital experiences.
+              <motion.h2 variants={fadeIn} className="text-xs sm:text-sm tracking-[0.2em] uppercase text-violet-500 font-medium mb-8 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 sm:gap-5">
+                <span>Web Developer</span>
+                <span className="hidden sm:block w-1.5 h-1.5 rounded-full bg-violet-300"></span>
+                <span>UI/UX Designer</span>
+              </motion.h2>
+              <motion.p variants={fadeIn} className="text-lg sm:text-xl text-slate-600 mb-8 font-light max-w-lg mx-auto md:mx-0 leading-relaxed">
+                I design intuitive web interfaces from concept to launch, combining clean visuals with smooth interactive elements. Focused on user experience, modern aesthetics, and seamless functionality.
               </motion.p>
 
-              <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+              <motion.div variants={fadeIn} className="flex items-center justify-center md:justify-start gap-6 mb-10">
+                <a href="https://github.com/NISRINE20" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-500 hover:text-violet-600 transition-colors">
+                  <GithubIcon className="w-5 h-5" />
+                  <span className="text-xs uppercase tracking-[0.1em] font-medium">GitHub</span>
+                </a>
+                <span className="w-1.5 h-1.5 bg-slate-200 rounded-full"></span>
+                <a href="https://www.linkedin.com/in/nisrine-bacasmo-158391323/" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-slate-500 hover:text-violet-600 transition-colors">
+                  <LinkedinIcon className="w-5 h-5" />
+                  <span className="text-xs uppercase tracking-[0.1em] font-medium">LinkedIn</span>
+                </a>
+              </motion.div>
+
+              <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start items-center">
                 <button
                   onClick={() => scrollToSection("contact")}
-                  className="px-8 py-4 rounded-full bg-gradient-to-r from-rose-500 to-rose-400 text-white font-medium hover:shadow-lg hover:shadow-rose-500/20 transition-all transform hover:-translate-y-1 active:translate-y-0"
+                  className="px-8 py-3.5 rounded-full bg-slate-800 text-white font-medium hover:bg-violet-600 transition-colors w-full sm:w-auto shadow-sm"
                 >
-                  Let's Talk
+                  Let's Connect
                 </button>
                 <button
                   onClick={() => scrollToSection("projects")}
-                  className="px-8 py-4 rounded-full border border-slate-700 hover:border-rose-400 text-slate-300 font-medium transition-all hover:bg-rose-500/5"
+                  className="px-8 py-3.5 rounded-full border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors w-full sm:w-auto"
                 >
-                  View My Work
+                  View Collection
                 </button>
               </motion.div>
             </motion.div>
 
             <motion.div
-              className="flex-1 flex justify-center z-10"
-              initial={{ opacity: 0, scale: 0.9 }}
+              className="flex-1 flex justify-center"
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1, ease: "easeOut" }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+              style={{ y: yHeroImage }}
             >
-              <div className="relative group w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 xl:w-96 xl:h-96">
-                <div className="absolute inset-0 bg-gradient-to-tr from-rose-400/20 to-transparent rounded-full blur-2xl group-hover:bg-rose-400/30 transition-all duration-700 delay-100"></div>
-                <div className="absolute inset-4 rounded-full border border-rose-500/20 animate-[spin_20s_linear_infinite]"></div>
-                <div className="relative w-full h-full rounded-full overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl">
+              <div className="relative w-[280px] h-[380px] sm:w-[320px] sm:h-[440px] lg:w-[400px] lg:h-[520px]">
+                <div className="absolute inset-0 bg-violet-200/50 rounded-[2rem] rotate-3 z-0 transition-transform hover:rotate-6 duration-500"></div>
+                <div className="relative w-full h-full rounded-[2rem] overflow-hidden border border-violet-100 shadow-xl z-10 mix-blend-multiply">
                   <img
                     src="/profile.png"
                     alt="Nisrine"
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity mix-blend-multiply"
                   />
-                  <div className="absolute inset-0 bg-rose-900/10 mix-blend-overlay"></div>
                 </div>
               </div>
             </motion.div>
@@ -393,42 +442,40 @@ function App() {
         </div>
       </section>
 
-      <section id="about" className="py-32 px-4 relative bg-slate-950/20">
-        <div className="max-w-6xl mx-auto">
+      {/* About Section */}
+      <section id="about" className="py-24 px-6 relative bg-white/50 border-y border-violet-100/50">
+        <div className="max-w-7xl mx-auto">
           <motion.div
-            className="flex flex-col lg:flex-row gap-16 lg:gap-32 items-center"
+            className="flex flex-col lg:flex-row gap-16 lg:gap-24 items-center"
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, margin: "-50px" }}
             variants={staggerContainer}
           >
-            <motion.div variants={fadeIn} className="lg:w-7/12">
-              <h2 className="text-4xl lg:text-6xl font-serif font-bold mb-10 text-white tracking-tight leading-[1.2]">Crafting <br /><span className="italic text-rose-300 font-light">Digital Elegance.</span></h2>
+            <motion.div variants={fadeIn} className="lg:w-1/2">
+              <h2 className="text-2xl lg:text-4xl tracking-[0.3em] uppercase text-violet-600 font-light mb-8">About Me</h2>
 
-              <blockquote className="border-l-2 border-rose-400/50 pl-8 mb-10">
-                <p className="text-2xl lg:text-3xl font-serif font-light text-slate-300 leading-snug italic">
-                  "I believe in purposeful design—where every pixel serves a function, and simplicity is the ultimate sophistication."
+              <blockquote className="border-l-2 border-violet-300 pl-6 mb-8 mt-4">
+                <p className="text-xl lg:text-2xl font-light text-slate-700 leading-snug italic">
+                  I don't just write code; I craft it. Every project is an opportunity to refine the art of digital building.
                 </p>
               </blockquote>
 
-              <div className="space-y-6 text-slate-400 font-light leading-relaxed text-lg max-w-xl">
-                <p>
-                  As an IT student, I bring a unique blend of strategic thinking and refined aesthetics to every project. My passion lies in transforming complex requirements into seamless, intuitive interfaces that users love. I am constantly learning, evolving, and refining my craft to build professional-grade applications.
-                </p>
-              </div>
+              <p className="text-slate-600 font-light leading-relaxed text-lg max-w-xl">
+                My philosophy is rooted in craftsmanship. Whether it's perfecting a micro-animation or optimizing backend performance, I take immense pride in the details that others might overlook.
+              </p>
             </motion.div>
 
-            <motion.div variants={fadeIn} className="lg:w-5/12 bg-slate-900/50 backdrop-blur-md p-10 border border-slate-800/80 rounded-3xl" data-cursor="HOVER">
-              <h3 className="text-sm tracking-widest uppercase text-rose-300 font-semibold mb-8">My Expertise</h3>
+            <motion.div variants={fadeIn} className="lg:w-1/2 w-full p-8 lg:p-12 bg-white rounded-[2rem] border border-violet-100 shadow-sm">
+              <h3 className="text-xl lg:text-2xl tracking-[0.3em] uppercase text-violet-600 font-light mb-8">My Skills</h3>
               <div className="flex flex-wrap gap-3">
                 {skills.map((skill, idx) => (
-                  <motion.div
+                  <span
                     key={idx}
-                    whileHover={{ scale: 1.05, backgroundColor: "rgba(244, 63, 94, 0.1)", borderColor: "rgba(244, 63, 94, 0.3)" }}
-                    className="px-6 py-3 rounded-full bg-slate-950 border border-slate-800 text-slate-300 text-sm font-medium transition-colors"
+                    className="px-5 py-2.5 rounded-full bg-slate-50 text-slate-700 border border-slate-100 text-sm font-medium"
                   >
                     {skill}
-                  </motion.div>
+                  </span>
                 ))}
               </div>
             </motion.div>
@@ -436,21 +483,23 @@ function App() {
         </div>
       </section>
 
-      <section id="projects" className="py-24 px-4 relative">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-rose-900/5 rounded-full blur-[100px]"></div>
-        <div className="max-w-6xl mx-auto relative z-10">
+      {/* Projects Section */}
+      <section id="projects" className="py-24 px-6 relative">
+        <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: true, margin: "-50px" }}
             variants={fadeIn}
-            className="mb-16 text-center"
+            className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6"
           >
-            <h2 className="text-3xl lg:text-4xl font-semibold text-white tracking-tight">Featured Projects</h2>
-            <p className="mt-4 text-slate-400 font-light max-w-2xl mx-auto">A selection of my recent works ranging from conceptual designs to fully built applications.</p>
+            <div>
+              <h2 className="text-2xl lg:text-4xl tracking-[0.3em] uppercase text-violet-600 font-light mb-4">My Work</h2>
+            </div>
+            <p className="text-slate-600 font-light max-w-md text-lg leading-relaxed mb-4">A meticulous selection of recent works, from conceptual UI designs to fully engineered applications.</p>
           </motion.div>
 
-          <div className="flex flex-col gap-32">
+          <div className="flex flex-col gap-24">
             {projects.map((project, idx) => {
               const isEven = idx % 2 === 0;
               return (
@@ -458,31 +507,44 @@ function App() {
                   key={idx}
                   initial={{ opacity: 0, y: 50 }}
                   whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-100px" }}
-                  transition={{ duration: 1, ease: "easeOut" }}
-                  className={`flex flex-col ${isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-10 lg:gap-0`}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                  className={`flex flex-col ${isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-10`}
                 >
                   {/* Image Block */}
-                  <div className="w-full lg:w-7/12 relative group" data-cursor="VIEW PROJECT">
-                    <a href={project.link !== "#" ? project.link : undefined} target="_blank" rel="noopener noreferrer">
-                      <div className="relative h-[400px] lg:h-[600px] overflow-hidden rounded-[2rem]">
-                        <motion.img
+                  <div 
+                    className="w-full lg:w-3/5"
+                    onMouseEnter={() => setCursorVariant("hover")}
+                    onMouseLeave={() => setCursorVariant("default")}
+                  >
+                    <a href={project.link !== "#" ? project.link : undefined} target="_blank" rel="noopener noreferrer" className="block relative overflow-hidden rounded-2xl group shadow-sm bg-white border border-violet-100 hover:shadow-2xl transition-all duration-500">
+                      <div className="relative h-[350px] lg:h-[500px] w-full overflow-hidden flex items-center justify-center p-6 lg:p-8">
+                        <img
                           src={project.image}
                           alt={project.title}
-                          className="w-full h-full object-cover origin-center"
-                          whileHover={{ scale: 1.05 }}
-                          transition={{ duration: 0.8, ease: "easeOut" }}
+                          className="w-full h-full object-contain [clip-path:circle(150%_at_50%_50%)] group-hover:[clip-path:circle(40%_at_50%_50%)] group-hover:rotate-[360deg] transition-all duration-[800ms] ease-out opacity-90 group-hover:opacity-100 drop-shadow-lg"
                         />
+                        <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-violet-900/5 transition-colors duration-500 pointer-events-none"></div>
                       </div>
                     </a>
                   </div>
+
                   {/* Text Block */}
-                  <div className={`w-full lg:w-6/12 bg-slate-950/80 backdrop-blur-xl p-10 lg:p-16 border border-slate-800/50 ${isEven ? 'lg:-ml-20' : 'lg:-mr-20'} z-10 rounded-3xl shadow-2xl`}>
-                    <h3 className="text-3xl lg:text-5xl font-serif font-bold text-white mb-6 leading-tight">{project.title}</h3>
-                    <p className="text-slate-400 font-light text-lg leading-relaxed mb-8">{project.description}</p>
-                    <a href={project.link !== "#" ? project.link : undefined} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-rose-300 uppercase tracking-widest text-xs font-bold hover:text-rose-400 transition-colors" data-cursor="OPEN">
-                      <span className="mr-3">Discover Project</span>
-                      <div className="w-8 h-[1px] bg-rose-300"></div>
+                  <div className={`w-full lg:w-2/5 flex flex-col justify-center ${isEven ? 'lg:pl-12' : 'lg:pr-12'}`}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="w-6 h-[2px] bg-violet-300"></span>
+                      <span className="text-xs uppercase tracking-[0.1em] text-violet-500 font-bold">Project 0{idx + 1}</span>
+                    </div>
+                    <h4 className="text-2xl lg:text-4xl font-bold text-slate-800 mb-4">{project.title}</h4>
+                    <p className="text-slate-600 font-light text-lg leading-relaxed mb-8">{project.description}</p>
+                    <a
+                      href={project.link !== "#" ? project.link : undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-violet-500 uppercase tracking-[0.1em] text-xs font-semibold hover:text-violet-700 transition-colors w-max group"
+                    >
+                      <span>View Project</span>
+                      <ArrowUpRight className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                     </a>
                   </div>
                 </motion.div>
@@ -492,8 +554,9 @@ function App() {
         </div>
       </section>
 
-      <section id="certificate" className="py-24 px-4 bg-slate-900/30 border-y border-slate-800/50">
-        <div className="max-w-6xl mx-auto">
+      {/* Credentials Section */}
+      <section id="certificate" className="py-24 px-6 bg-white border-y border-violet-100/50 relative">
+        <div className="max-w-7xl mx-auto relative z-10">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -501,8 +564,7 @@ function App() {
             variants={fadeIn}
             className="mb-16 text-center"
           >
-            <h2 className="text-4xl lg:text-6xl font-serif font-bold text-white tracking-tight leading-[1.2]">My <span className="italic font-light text-rose-300">Credentials.</span></h2>
-            <p className="mt-4 text-slate-400 font-light">Certifications validating my skills and continuous growth.</p>
+            <h2 className="text-2xl lg:text-4xl tracking-[0.3em] uppercase text-violet-600 font-light">My Certifications</h2>
           </motion.div>
 
           <motion.div
@@ -512,27 +574,33 @@ function App() {
             viewport={{ once: true }}
             variants={staggerContainer}
           >
-            {certificates.map((cert) => (
-              <TiltCard key={cert.id}>
-                <motion.div
-                  variants={fadeIn}
-                  onClick={() => openCertModal(cert)}
-                  className="group h-full cursor-pointer rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 hover:border-rose-500/30 transition-all shadow-xl shadow-black/50"
-                >
-                  <div className="relative h-48 sm:h-56">
-                    <img
-                      src={cert.image}
-                      alt={cert.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent opacity-80 group-hover:opacity-40 transition-opacity"></div>
-                    <div className="absolute bottom-4 left-4 right-4">
-                      <p className="text-xs tracking-widest uppercase text-rose-300 font-semibold mb-1">Click to view</p>
-                      <h3 className="text-lg font-medium text-white">{cert.title}</h3>
-                    </div>
+            {certificates.map((cert, idx) => (
+              <motion.div
+                key={cert.id}
+                variants={fadeIn}
+                whileHover={{ y: -10, rotateX: 5, rotateY: -5 }}
+                className="bg-[#FAF9F6] border border-violet-100 rounded-[2rem] p-4 shadow-sm cursor-pointer group hover:shadow-xl transition-all duration-500"
+                onClick={() => openCertModal(idx)}
+                onMouseEnter={() => setCursorVariant("hover")}
+                onMouseLeave={() => setCursorVariant("default")}
+                style={{ perspective: 1000 }}
+              >
+                <div className="relative h-64 w-full overflow-hidden rounded-xl bg-white border border-slate-100 mb-6 flex items-center justify-center p-4">
+                  <img
+                    src={cert.image}
+                    alt={cert.title}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500 opacity-90 drop-shadow-sm"
+                  />
+                  <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/5 transition-colors flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-slate-800 text-xs font-medium uppercase tracking-wider px-4 py-2 rounded-full transition-opacity backdrop-blur-sm shadow-sm">
+                      View Certificate
+                    </span>
                   </div>
-                </motion.div>
-              </TiltCard>
+                </div>
+                <div className="px-2 pb-2 text-center">
+                  <h4 className="text-lg font-bold text-slate-800 mb-1">{cert.title}</h4>
+                </div>
+              </motion.div>
             ))}
           </motion.div>
 
@@ -541,76 +609,108 @@ function App() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="flex flex-col sm:flex-row gap-6 justify-center items-center"
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
           >
             <button
               onClick={downloadAllCertificates}
-              className="px-8 py-3.5 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-rose-400/50 transition-all text-sm font-medium w-full sm:w-auto"
+              className="px-8 py-3.5 rounded-full bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium w-full sm:w-auto shadow-sm"
             >
-              Download Certificates (ZIP)
+              Archive ZIP
             </button>
             <a
               href="/resume.pdf"
               download
-              className="px-8 py-3.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/30 hover:bg-rose-500 hover:text-white transition-all text-sm font-medium w-full sm:w-auto text-center"
+              className="px-8 py-3.5 rounded-full bg-slate-800 text-white hover:bg-violet-600 transition-colors text-sm font-bold w-full sm:w-auto text-center shadow-sm"
             >
-              Download Resume
+              Download CV
             </a>
           </motion.div>
         </div>
       </section>
 
+      {/* Certificate Modal */}
       <AnimatePresence>
-        {showCertModal && selectedCert && (
+        {showCertModal && selectedCertIndex !== null && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/90 backdrop-blur-sm z-[9998] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[9998] flex items-center justify-center p-2 sm:p-4"
             onClick={() => setShowCertModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative max-w-4xl w-full max-h-[90vh] bg-slate-900 rounded-2xl border border-slate-700 shadow-2xl overflow-hidden shadow-rose-900/20"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative max-w-5xl w-full max-h-[90vh] bg-white rounded-[2rem] shadow-2xl overflow-hidden p-4 sm:p-6 flex items-center justify-between gap-4"
               onClick={(e) => e.stopPropagation()}
             >
+              <button onClick={prevCert} className="z-20 p-3 bg-slate-50 hover:bg-violet-50 rounded-full text-slate-500 hover:text-violet-600 transition-colors shrink-0 shadow-sm border border-slate-100 hidden sm:block">
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              
+              <div className="flex-1 overflow-hidden h-[75vh] sm:h-[80vh] rounded-xl flex items-center justify-center relative w-full">
+                <AnimatePresence mode="wait">
+                  <motion.img 
+                    key={selectedCertIndex}
+                    src={certificates[selectedCertIndex]?.image} 
+                    alt={certificates[selectedCertIndex]?.title} 
+                    className="w-auto h-auto max-w-full max-h-full object-contain drop-shadow-md"
+                    initial={{ opacity: 0, scale: 0.8, x: spinDirection * 400, rotateY: spinDirection * -45 }}
+                    animate={{ opacity: 1, scale: 1, x: 0, rotateY: 0 }}
+                    exit={{ opacity: 0, scale: 0.8, x: spinDirection * -400, rotateY: spinDirection * 45 }}
+                    transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+                    style={{ transformPerspective: 1200 }}
+                  />
+                </AnimatePresence>
+              </div>
+
+              <button onClick={nextCert} className="z-20 p-3 bg-slate-50 hover:bg-violet-50 rounded-full text-slate-500 hover:text-violet-600 transition-colors shrink-0 shadow-sm border border-slate-100 hidden sm:block">
+                <ChevronRight className="w-6 h-6" />
+              </button>
+
+              {/* Mobile controls overlaid */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 sm:hidden z-30">
+                <button onClick={prevCert} className="p-3 bg-white/90 backdrop-blur shadow-md rounded-full text-slate-600">
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button onClick={nextCert} className="p-3 bg-white/90 backdrop-blur shadow-md rounded-full text-slate-600">
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+
               <button
                 onClick={() => setShowCertModal(false)}
-                className="absolute top-4 right-4 bg-slate-800/80 hover:bg-rose-500 text-slate-300 hover:text-white w-10 h-10 rounded-full flex items-center justify-center font-medium transition-colors z-10 backdrop-blur-sm"
+                className="absolute top-4 right-4 bg-white/90 hover:bg-white text-slate-500 hover:text-red-500 w-10 h-10 rounded-full flex items-center justify-center transition-colors z-30 shadow-sm border border-slate-100"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
-              <div className="overflow-auto max-h-[90vh] p-2 bg-slate-950/50">
-                <img src={selectedCert.image} alt={selectedCert.title} className="w-full h-auto rounded-xl object-contain shadow-inner" />
-              </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <section id="contact" className="py-24 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950 to-slate-900"></div>
-        <div className="max-w-3xl mx-auto relative z-10 bg-slate-900/50 backdrop-blur-md rounded-3xl border border-slate-800/80 p-10 md:p-16 text-center">
+      {/* Contact Section */}
+      <section id="contact" className="py-24 px-6 relative overflow-hidden">
+        <div className="max-w-3xl mx-auto bg-white rounded-[2rem] border border-violet-100 p-10 md:p-16 text-center shadow-sm">
           <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeIn}
           >
-            <h2 className="text-3xl lg:text-4xl font-semibold text-white tracking-tight mb-4">Let's Create Together</h2>
-            <p className="text-slate-400 font-light mb-12">I am currently open for new opportunities or collaborations. Feel free to reach out to me directly.</p>
+            <h2 className="text-2xl lg:text-4xl tracking-[0.3em] uppercase text-violet-600 font-light mb-6">Contact</h2>
+            <p className="text-slate-600 font-light mb-12 text-lg mt-4">Open for new opportunities, collaborations, or just a simple chat about design and technology.</p>
 
-            <div className="flex flex-wrap justify-center gap-6 mb-12">
+            <div className="flex justify-center gap-6 mb-12">
               {contactLinks.map((c) => (
-                <a
+                <button
                   key={c.id}
-                  href={c.href}
-                  title={c.title}
-                  target={c.id === "facebook" ? "_blank" : undefined}
-                  rel={c.id === "facebook" ? "noopener noreferrer" : undefined}
-                  className="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-rose-500 hover:text-white hover:border-rose-400 transition-all hover:-translate-y-1 shadow-md shadow-slate-900/50 group"
+                  onClick={() => {
+                    if (c.id === "phone") window.location.href = c.href;
+                    else window.open(c.href, c.id === "facebook" ? "_blank" : "_self");
+                  }}
+                  className="w-14 h-14 flex items-center justify-center rounded-full bg-slate-50 text-slate-500 hover:bg-violet-50 hover:text-violet-600 border border-slate-100 transition-colors"
                 >
                   {c.id === "phone" && (
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
@@ -621,18 +721,18 @@ function App() {
                   {c.id === "facebook" && (
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c5.05-.5 9-4.76 9-9.95z" /></svg>
                   )}
-                </a>
+                </button>
               ))}
             </div>
 
-            <div className="flex flex-wrap justify-center gap-8 border-t border-slate-800/50 pt-10">
+            <div className="flex justify-center gap-8 pt-8 border-t border-slate-100">
               {socialLinks.map((social, idx) => (
                 <a
                   key={idx}
                   href={social.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs uppercase tracking-widest font-semibold text-slate-400 hover:text-rose-400 transition-colors"
+                  className="text-xs uppercase tracking-[0.1em] font-medium text-slate-400 hover:text-violet-600 transition-colors"
                 >
                   {social.name}
                 </a>
@@ -642,8 +742,8 @@ function App() {
         </div>
       </section>
 
-      <footer className="py-8 text-center bg-slate-950 border-t border-slate-900 border-rose-900/20">
-        <p className="text-slate-500 text-sm font-medium">© {new Date().getFullYear()} NISRINE. Crafted with elegance.</p>
+      <footer className="py-8 text-center border-t border-violet-100 bg-white/50">
+        <p className="text-slate-400 text-xs tracking-widest uppercase font-medium">© {new Date().getFullYear()} NISRINE. Designed with intention.</p>
       </footer>
     </div>
   );

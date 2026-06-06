@@ -5,14 +5,21 @@ const CustomCursor = () => {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
   
-  const springConfig = { damping: 35, stiffness: 600, mass: 0.5 };
+  // Snappier, cooler spring effect
+  const springConfig = { damping: 25, stiffness: 700, mass: 0.5 };
   const cursorXSpring = useSpring(cursorX, springConfig);
   const cursorYSpring = useSpring(cursorY, springConfig);
 
   const [isHovering, setIsHovering] = useState(false);
   const [hoverText, setHoverText] = useState("");
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   useEffect(() => {
+    if (window.matchMedia("(pointer: coarse)").matches) {
+      setIsTouchDevice(true);
+      return;
+    }
+
     const moveCursor = (e) => {
       cursorX.set(e.clientX);
       cursorY.set(e.clientY);
@@ -44,6 +51,8 @@ const CustomCursor = () => {
     };
   }, [cursorX, cursorY]);
 
+  if (isTouchDevice) return null;
+
   return (
     <>
       <style>{`
@@ -55,19 +64,22 @@ const CustomCursor = () => {
           x: cursorXSpring,
           y: cursorYSpring,
           translateX: "-50%",
-          translateY: "-50%"
+          translateY: "-50%",
+          border: isHovering ? "1px solid rgba(255,255,255,0.2)" : "none"
         }}
-        initial={{ width: 16, height: 16, backgroundColor: "rgba(255,255,255,1)" }}
+        initial={{ width: 12, height: 12, backgroundColor: "rgba(255,255,255,1)" }}
         animate={{
-          width: isHovering && hoverText ? 80 : isHovering ? 48 : 20,
-          height: isHovering && hoverText ? 80 : isHovering ? 48 : 20,
-          backgroundColor: isHovering && hoverText ? "rgba(255,255,255,1)" : "rgba(255,255,255,1)",
+          width: isHovering && hoverText ? 90 : isHovering ? 60 : 12,
+          height: isHovering && hoverText ? 90 : isHovering ? 60 : 12,
+          backgroundColor: isHovering ? "rgba(255,255,255,1)" : "rgba(255,255,255,1)",
         }}
-        transition={{ duration: 0.2, ease: "easeOut" }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
       >
         <motion.span
-          animate={{ opacity: isHovering && hoverText ? 1 : 0 }}
-          className="text-[10px] font-bold text-black tracking-widest whitespace-nowrap"
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: isHovering && hoverText ? 1 : 0, scale: isHovering && hoverText ? 1 : 0.5 }}
+          transition={{ duration: 0.2 }}
+          className="text-[10px] font-bold text-black tracking-widest whitespace-nowrap uppercase"
         >
           {hoverText}
         </motion.span>
