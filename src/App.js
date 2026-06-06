@@ -23,7 +23,6 @@ function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showCertModal, setShowCertModal] = useState(false);
-  const [selectedCert, setSelectedCert] = useState(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [cursorVariant, setCursorVariant] = useState("default");
   const [activeSection, setActiveSection] = useState("home");
